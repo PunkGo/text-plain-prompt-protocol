@@ -58,12 +58,30 @@ Cache-Control: no-store
 
 ### Callback Mechanism
 
-AI cannot make HTTP requests. Instead:
+**Mode A: Human-in-the-loop (default)**
 1. AI outputs a markdown link `[text](url)` to the human
 2. Human clicks the link
-3. Server receives the click as a GET request with parameters
-4. Server updates state and returns an HTML page to the human
-5. HTML page contains the next text/plain URL for the AI
+3. Server receives the click, updates state, returns HTML to human
+4. HTML page contains the next text/plain URL for the AI
+5. Human copies URL back to AI → repeat
+
+**Mode B: AI auto-follow (Kimi and others)**
+
+Some AIs can autonomously fetch URLs from their own output. When the callback URL returns a new text/plain response (instead of HTML), the AI continues following the chain without human intervention.
+
+```
+AI fetches URL → text/plain response contains next URL → AI fetches that → repeat
+```
+
+This enables **fully autonomous multi-round interactions** — the human only needs to send the first URL. Tested: Kimi can follow unlimited URL chains in a single conversation.
+
+| AI | Auto-follow URLs | Notes |
+|---|---|---|
+| Kimi | ✅ Unlimited | Can complete entire games autonomously |
+| ChatGPT | ⚠️ Limited | May stop after a few hops |
+| Claude | ❌ | Requires human to paste each URL |
+| Doubao | ⚠️ | Inconsistent |
+| DeepSeek | ❌ | Claims can't access external links |
 
 ### Cache Busting
 
