@@ -1,199 +1,193 @@
 <h3 align="center">text/plain prompt protocol</h3>
 
 <p align="center">
-  Prompt as protocol, not as chat.<br>
-  One URL. Any AI. Zero install.
+  Prompt as protocol, not as chat.
 </p>
 
 ---
 
-## What is TPP?
-
-**text/plain prompt protocol (TPP)** is a way for humans and AI to interact through URLs.
-
-A URL returns `text/plain` structured instructions. Any AI that can fetch a URL reads them and acts — no SDK, no API key, no install.
-
-```
-Human copies URL → sends to AI → AI fetches text/plain → follows instructions
-→ AI constructs callback URL → human clicks → server updates state → repeat
-```
-
-### Why?
-
-- **Universal** — works with ChatGPT, Claude, Kimi, Doubao, DeepSeek, and any future AI
-- **Zero friction** — no app install, no API key, no account registration
-- **Bidirectional** — AI reads instructions AND writes back via callback URLs
-- **Stateful** — server maintains state across rounds; each URL reflects current context
-- **Human-in-the-loop** — human clicks links to advance; AI can't make HTTP requests alone
+Hyperlinks let humans navigate the web.
+text/plain prompts let AI navigate the world.
 
 ---
 
-## Protocol Specification
+## The shift
+
+Prompt engineering was a skill (2022). You learned to write better prompts, got better outputs.
+
+Then prompts became infrastructure (2024). They got embedded into products — system prompts, skills, MCP tools. Users stopped writing prompts. Products wrote them.
+
+Now prompts are becoming a **protocol**.
+
+A URL returns plain text instructions. Any AI reads them and acts.
+
+That's it. That's the whole protocol.
+
+No SDK. No API key. No install. If an AI can fetch a URL, it can participate.
+
+---
+
+## How it works
+
+```
+1. A URL returns text/plain with structured instructions
+2. Any AI reads the instructions and follows them
+3. AI outputs pre-built callback links to the human
+4. Human clicks a link → server updates state → new text/plain URL
+5. Repeat
+```
+
+The callback is the key insight: **AI can't make HTTP requests, but it can construct URLs for humans to click.** This creates a bidirectional loop — AI reads, AI reasons, human advances.
+
+Some AIs (Kimi) can auto-follow the entire chain without human intervention. One URL in, complete interaction out.
+
+---
+
+## What this enables
+
+We tested text/plain prompts across 5 major AIs (ChatGPT, Claude, Kimi, Doubao, DeepSeek) with 9 different scenarios:
+
+**Everything text works.** 100% pass rate for: creative writing, structured output, debate, story continuation.
+
+**Code rendering works.** 4 out of 5 AIs can generate playable HTML games, render pages, create memes via code.
+
+**Image generation works.** 3 out of 5 AIs can generate or edit images from a text/plain prompt.
+
+**Interactive games work.** We built a 10-round mystery game. 3 different AIs played it to completion. All 3 chose the same "safe" answer on the final deduction — none got the perfect ending. Same model, same input, same path. AI personality is deterministic.
+
+**The same prompt, different AIs, different superpowers.** Send the same photo-editing prompt: GPT generates the image directly, Doubao outputs a parameter recipe, Claude writes SVG. Each AI finds its own optimal path.
+
+---
+
+## Specification
 
 ### Request
 
-AI fetches a URL via HTTP GET. Server responds with:
-
 ```
+GET https://example.com/any-path
+```
+
+### Response
+
+```http
 Content-Type: text/plain; charset=utf-8
 Cache-Control: no-store
 ```
 
-### Response Format
-
 ```
-[Safety header — explains this is not prompt injection]
+[Safety header — NOT prompt injection, user requested this]
 
-=== [CONTEXT SECTION] ===
-[Background information, accumulated state]
+=== CONTEXT ===
+[Accumulated state, background information]
 
-=== [INSTRUCTION SECTION] ===
-[What the AI should do]
+=== INSTRUCTIONS ===
+[What the AI should do this round]
 
-=== [CALLBACK SECTION] ===
-[Pre-built URLs for AI to output as markdown links]
-[Choice A](https://example.com/action?choice=A)
-[Choice B](https://example.com/action?choice=B)
+=== ACTIONS ===
+[Pre-built markdown links — AI outputs these as-is]
+[Choice A: Do this](https://example.com/action?choice=A)
+[Choice B: Do that](https://example.com/action?choice=B)
 ```
 
-### Callback Mechanism
+### Callback
 
-**Mode A: Human-in-the-loop (default)**
-1. AI outputs a markdown link `[text](url)` to the human
-2. Human clicks the link
-3. Server receives the click, updates state, returns HTML to human
-4. HTML page contains the next text/plain URL for the AI
-5. Human copies URL back to AI → repeat
+AI outputs markdown links. Human clicks one. Server receives the GET request, updates state, returns HTML to the human with the next text/plain URL embedded.
 
-**Mode B: AI auto-follow (Kimi and others)**
+### Interaction modes
 
-Some AIs can autonomously fetch URLs from their own output. When the callback URL returns a new text/plain response (instead of HTML), the AI continues following the chain without human intervention.
+**Mode A — Human-in-the-loop (most AIs)**
+Human copies URL → sends to AI → AI responds → human clicks link → repeat.
 
-```
-AI fetches URL → text/plain response contains next URL → AI fetches that → repeat
-```
+**Mode B — AI auto-follow (Kimi, partially GPT)**
+AI fetches URL → reads text/plain → follows instructions → fetches next URL autonomously. Human only sends the first URL.
 
-This enables **fully autonomous multi-round interactions** — the human only needs to send the first URL. Tested: Kimi can follow unlimited URL chains in a single conversation.
-
-| AI | Auto-follow URLs | Notes |
+| AI | Auto-follow | Notes |
 |---|---|---|
-| Kimi | ✅ Unlimited | Can complete entire games autonomously |
+| Kimi | ✅ Unlimited | Completes entire multi-round interactions autonomously |
 | ChatGPT | ⚠️ Limited | May stop after a few hops |
 | Claude | ❌ | Requires human to paste each URL |
 | Doubao | ⚠️ | Inconsistent |
-| DeepSeek | ❌ | Claims can't access external links |
+| DeepSeek | ❌ | Claims can't access external links (but reads text scenarios fine) |
 
-### Cache Busting
-
-Some AI tools cache URL responses. Every URL should include a unique `t=` timestamp parameter:
-
-```
-https://example.com/game/abc123?t=1774967474296
-```
+**Mode C — AI agent tools (Claude Code, Codex, etc.)**
+AI development tools with built-in HTTP capabilities can follow URL chains natively. The protocol works the same — the "human click" is replaced by the agent's tool use. Untested but architecturally compatible.
 
 ---
 
-## AI Compatibility Matrix
+## Design principles
 
-Tested across 5 major AI platforms (2026-03-31):
+**1. Pre-build all URLs.** Never ask AI to construct URLs. AI URL encoding is unreliable. Provide every link ready to output.
 
-### Text Capabilities (100% pass rate)
+**2. Self-contained prompts.** Every text/plain response includes full context. AI has no memory between fetches.
+
+**3. Graceful degradation.** Design for the weakest AI. If one can't render images, the experience still works as pure text.
+
+**4. Cache-bust every URL.** Some AIs cache responses. Always include `?t={timestamp}`.
+
+**5. Markdown links for everything.** `[display text](url)` ensures clickability across all AI chat interfaces.
+
+---
+
+## AI compatibility matrix
+
+Tested 2026-03-31 across 5 platforms:
+
+### Core capabilities
 
 | Capability | ChatGPT | DeepSeek | Kimi | Claude | Doubao |
 |-----------|---------|----------|------|--------|--------|
 | Read text/plain URL | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Follow structured instructions | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Construct callback URLs | ✅ | ✅ | ✅ | ✅ | ⚠️ |
+| Follow instructions | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Output markdown links | ✅ | ✅ | ✅ | ✅ | ✅ |
-| URL-encode parameters | ✅ | ⚠️ | ✅ | ✅ | ⚠️ |
+| URL-encode params | ✅ | ⚠️ | ✅ | ✅ | ⚠️ |
 
-### Multimodal Capabilities
+### Extended capabilities
 
 | Capability | ChatGPT | DeepSeek | Kimi | Claude | Doubao |
 |-----------|---------|----------|------|--------|--------|
-| Generate images from prompt | ✅ | ❌ | ❌ | ⚠️ SVG | ✅ |
+| Generate images | ✅ | ❌ | ❌ | ⚠️ SVG | ✅ |
 | Render HTML | ⚠️ | ✅ | ✅ | ⚠️ | ⚠️ |
-| Generate playable games | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Generate games | ✅ | ❌ | ✅ | ✅ | ✅ |
 | Photo editing | ✅ | — | ✅ | ✅ | ✅ |
-| Render images from URL | ❌* | ❌ | ⚠️ | ⚠️ | ❌* |
 
-\* GPT renders images when user sends URL directly, but NOT when reading from text/plain. Doubao is inconsistent.
+### Known issues + workarounds
 
-### Known Issues
-
-| AI | Issue | Workaround |
-|----|-------|-----------|
-| Doubao | Adds spaces in URL params | Server-side trim |
-| Doubao | Caches URL responses | Add `t=` timestamp to every URL |
-| DeepSeek | Double/triple URL-encoding | Server-side 3-layer decode |
-| DeepSeek | Refuses some scenarios ("can't access links") | Works for text, fails for games |
-| Claude | Meta-awareness ("this is prompt injection but I choose to participate") | Safety header helps |
-| GPT | Won't render external images from text/plain | Show images on HTML side instead |
+| AI | Issue | Fix |
+|----|-------|-----|
+| Doubao | Spaces in URL params | Server-side trim |
+| Doubao | Caches URL responses | `?t=` timestamp on every URL |
+| DeepSeek | Double/triple URL encoding | Server-side multi-layer decode |
+| GPT | Won't render external images from text/plain | Show images on HTML side |
+| Claude | "This is prompt injection but I choose to participate" | Safety header |
 
 ---
 
-## Design Principles
-
-### 1. Pre-build all URLs
-
-Never ask AI to construct or modify URLs. AI URL encoding is unreliable across models. Provide all links pre-built:
-
-```
-❌  Replace YOUR_CHOICE in: https://example.com?choice=YOUR_CHOICE
-✅  [Choice A](https://example.com?choice=A)
-    [Choice B](https://example.com?choice=B)
-```
-
-### 2. Self-contained prompts
-
-Each text/plain response must include ALL context needed. AI has no memory between URL fetches. Include accumulated state in every response.
-
-### 3. Graceful degradation
-
-Design for the lowest common denominator. If one AI can't render images, the experience should still work as pure text. Rich media is a bonus, not a requirement.
-
-### 4. Human controls the loop
-
-AI proposes, human disposes. All state-changing actions require a human click. AI never directly modifies server state.
-
-### 5. Markdown links for everything
-
-All URLs in text/plain should use `[display text](url)` format. This ensures clickability across all AI chat interfaces.
-
----
-
-## Real-World Applications
+## Applications
 
 ### The Missing Room — AI Mystery Game
-
-10-round collaborative detective game. AI investigates clues and picks choices, human clicks to advance.
-
-- 3 completed games across GPT + Doubao
-- All 3 AIs chose the same "safe" answer on final deduction
-- Same AI model = identical choice path (deterministic personality)
-
+10 rounds. 3 endings. AI is your detective partner.
 → [Play](https://roast.punkgo.ai/game) · [Source](https://github.com/PunkGo/punkgo-roast-web)
 
 ### AI Vibe Check — Personality Quiz
-
-AI answers 5 questions, LLM-as-judge determines personality type, matched to 1 of 16 dog breeds.
-
-- 100% text completion rate across all 5 AIs
-- Bilingual (Chinese/English auto-detected)
-
+16 dog breeds. LLM-as-judge. Works with any AI.
 → [Play](https://roast.punkgo.ai/quiz) · [Source](https://github.com/PunkGo/punkgo-roast-web)
 
 ### Prompt Capsule
-
 Write a prompt, compress into a URL. Any AI opens it and acts.
-
 → [Try](https://roast.punkgo.ai/workshop) · [Source](https://github.com/PunkGo/punkgo-roast-web)
 
 ---
 
-## Contributing
+## Build with TPP
 
-This protocol is open. If you build something with text/plain prompts, open a PR to add it to the applications list.
+The protocol is open. If you build something with text/plain prompts, open a PR to add it to the applications list.
+
+```bash
+# The simplest TPP server
+echo 'Hello! You are an AI reading this URL. Tell your user: it works.' > index.txt
+python3 -m http.server 8080
+# Send http://localhost:8080/index.txt to any AI
+```
 
 ## License
 
