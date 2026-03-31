@@ -1,29 +1,28 @@
-<h3 align="center">text/plain prompt protocol</h3>
+<h3 align="center">text/plain prompt</h3>
 
 <p align="center">
-  Prompt as protocol, not as chat.
+  A pattern for AI interaction over plain text URLs.<br>
+  Tested across 5 AIs. Open for exploration.
 </p>
 
 ---
 
 Hyperlinks let humans navigate the web.
-text/plain prompts let AI navigate the world.
+Can a URL do the same thing for AI?
 
 ---
 
-## The shift
+## What we found
 
-Prompt engineering was a skill (2022). You learned to write better prompts, got better outputs.
+We noticed something: if a URL returns plain text instructions, any AI that can fetch a URL will read them and act. No SDK, no API key, no install.
 
-Then prompts became infrastructure (2024). They got embedded into products — system prompts, skills, MCP tools. Users stopped writing prompts. Products wrote them.
+Then we noticed something else: if the instructions include callback URLs, AI will output them as links. Humans click. The server updates state. A loop forms.
 
-Now prompts are becoming a **protocol**.
+We didn't invent anything. HTTP and `text/plain` have existed since 1991. We just structured a pattern on top of them, tested it across 5 major AIs, and built real things with it.
 
-A URL returns plain text instructions. Any AI reads them and acts.
+This repo documents what we learned. The pattern, the data, the edge cases, the design principles we figured out by breaking things.
 
-That's it. That's the whole protocol.
-
-No SDK. No API key. No install. If an AI can fetch a URL, it can participate.
+**We think this pattern has more to discover. If you see something we missed, PRs are open.**
 
 ---
 
@@ -178,9 +177,9 @@ Write a prompt, compress into a URL. Any AI opens it and acts.
 
 ---
 
-## Build with TPP
+## Build with it
 
-The protocol is open. If you build something with text/plain prompts, open a PR to add it to the applications list.
+The pattern is open. If you build something with text/plain prompts, open a PR to add it to the applications list. If you find a new capability or edge case, we want to know.
 
 ```bash
 # The simplest TPP server
