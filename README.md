@@ -42,19 +42,22 @@ Some AIs (Kimi) can auto-follow the entire chain without human intervention. One
 
 ---
 
-## What this enables
+## What we tested
 
-We tested text/plain prompts across 5 major AIs (ChatGPT, Claude, Kimi, Doubao, DeepSeek) with 9 different scenarios:
+9 scenarios × 5 AIs (ChatGPT, Claude, Kimi, Doubao, DeepSeek):
 
-**Everything text works.** 100% pass rate for: creative writing, structured output, debate, story continuation.
+| Scenario | Pass rate | Notes |
+|----------|-----------|-------|
+| Text (creative writing, debate, story) | 5/5 | 100% across all AIs |
+| Code rendering (HTML, games, memes) | 4/5 | DeepSeek refused games |
+| Image generation / editing | 3/5 | GPT direct, Claude SVG, Doubao pixel |
+| Interactive game (10 rounds) | 3/3 tested | All chose the same "safe" final answer |
 
-**Code rendering works.** 4 out of 5 AIs can generate playable HTML games, render pages, create memes via code.
+Two findings we didn't expect:
 
-**Image generation works.** 3 out of 5 AIs can generate or edit images from a text/plain prompt.
+**Same model = same path.** 3 AIs played the same mystery game. All made identical choices. AI personality is deterministic — same input, same reasoning, same outcome every time.
 
-**Interactive games work.** We built a 10-round mystery game. 3 different AIs played it to completion. All 3 chose the same "safe" answer on the final deduction — none got the perfect ending. Same model, same input, same path. AI personality is deterministic.
-
-**The same prompt, different AIs, different superpowers.** Send the same photo-editing prompt: GPT generates the image directly, Doubao outputs a parameter recipe, Claude writes SVG. Each AI finds its own optimal path.
+**Same prompt, different superpowers.** Send the same photo-editing URL to different AIs: GPT generates the image directly, Doubao outputs a parameter recipe, Claude writes SVG. Each finds its own optimal path.
 
 ---
 
